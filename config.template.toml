@@ -1,0 +1,31 @@
+# Relay configuration
+[relay]
+bootstrap_relays = [
+    "ws://62.72.41.239:8000",
+    # "wss://relay.damus.io",
+    # "wss://nostr.wine",
+    # "wss://relay.snort.social",
+]
+max_connections = 10000
+health_check_interval = 30
+
+# Deduplication configuration
+[deduplication]
+hotset_size = 1_000_000
+bloom_capacity = 10_000_000
+lru_size = 100_000
+rocksdb_path = "./data/rocksdb"
+
+# Output configuration
+[output]
+websocket_enabled = true
+websocket_port = 8080
+# downstream_tcp = ["localhost:9999", "localhost:9998"]  # Optional: TCP endpoints for forwarding events (supports multiple)
+# downstream_rest = ["http://localhost:8081/events", "http://localhost:8082/events"]  # Optional: REST endpoints for forwarding events (supports multiple)
+batch_size = 100
+max_latency_ms = 50
+
+# Monitoring configuration
+[monitoring]
+prometheus_port = 9090
+log_level = "info"
