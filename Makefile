@@ -113,7 +113,7 @@ run: build ## Run release version
 
 debug: dev ## Run development version (debug mode)
 	@echo "🚀 Running development version..."
-	@$(DEBUG_BINARY)
+	@$(DEBUG_BINARY) --config config.template.toml
 
 run-with-config: build ## Run release version using config file
 	@echo "🚀 Running with config file..."
@@ -190,13 +190,13 @@ docker-run: docker-build ## Run Docker container
 	@echo "🚀 Running Docker container..."
 	@docker run -d \
 		--name iso-relayer \
-		-p 3000:3000 \
+		-p 8080:8080 \
 		-p 9090:9090 \
 		-v $(PWD)/data:/app/data \
 		-e RUST_LOG=iso_relayer=info \
 		$(DOCKER_IMAGE)
 	@echo "✅ Container started!"
-	@echo "🌐 REST API: http://localhost:3000"
+	@echo "🌐 REST API: http://localhost:8080"
 	@echo "📊 Prometheus: http://localhost:9090"
 
 docker-stop: ## Stop Docker container

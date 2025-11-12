@@ -27,7 +27,7 @@ graph TB
         ER3[Relay 3]
         ER4[Relay..10,000]
     end
-    
+
     subgraph RelayGateway [Relay Gateway Core]
         RP[Relay Connection Pool]
         DE[Deduplication Engine]
@@ -35,26 +35,26 @@ graph TB
         ST[Storage Layer]
         API[Output Interface]
     end
-    
+
     subgraph Downstream [PoCW Engine]
         DS1[IFC: Intersubjective Fluxional Consensus]
         DS2[ISO: Intersubjective Semantic Organism]
     end
-    
+
     ER1 --> RP
     ER2 --> RP
     ER3 --> RP
     ER4 --> RP
-    
+
     RP --> DE
     DE --> ES
     ES --> API
     ST --> DE
     ST --> ES
-    
+
     API --> DS1
     API --> DS2
-    
+
     RelayGateway -.-> Prometheus/RESTAPI
 ```
 
@@ -149,7 +149,8 @@ iso-relayer/
 1. **Clone the project**
 
    ```bash
-   cd /Users/blake/work/nagara/code/Mining/iso-relayer
+   git clone https://github.com/ai-chen2050/iso-relayer.git
+   cd iso-relayer
    ```
 
 2. **Create configuration file**
@@ -157,6 +158,8 @@ iso-relayer/
    ```bash
    cp config.template.toml config.toml
    # Edit config.toml to customize as needed
+   # OR use makefile compile tool
+   make setup-env
    ```
 
 3. **Compile and run**
@@ -229,7 +232,7 @@ lru_size = 50000                # LRU cache size
 [output]
 # Output configuration
 websocket_enabled = true        # Enable WebSocket
-websocket_port = 3000           # WebSocket port
+websocket_port = 8080           # WebSocket port
 batch_size = 100                # Batch processing size
 max_latency_ms = 100            # Maximum latency (milliseconds)
 downstream_tcp = []             # TCP downstream endpoints

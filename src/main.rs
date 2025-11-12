@@ -68,16 +68,23 @@ async fn main() -> Result<()> {
     let dedupe_engine = match &cfg {
         Some(c) => Arc::new(
             DeduplicationEngine::new_with_params(
-                rocksdb,
+                rocksdb.clone(),
                 c.deduplication.hotset_size,
                 c.deduplication.bloom_capacity,
                 c.deduplication.lru_size,
             )
             .with_metrics(metrics.clone()),
         ),
-        None => Arc::new(DeduplicationEngine::new(rocksdb).with_metrics(metrics.clone())),
+        None => Arc::new(DeduplicationEngine::new(rocksdb.clone()).with_metrics(metrics.clone())),
     };
     info!("Deduplication engine initialized");
+
+    // Warm dedup engine from RocksDB successful-forward index to avoid duplicate downstream sends after restart
+    let warm_limit = cfg
+        .as_ref()
+        .map(|c| c.deduplication.hotset_size)
+        .unwrap_or(10_000);
+    dedupe_engine.warm_from_db(warm_limit).await;
 
     // Initialize relay pool
     let (health_check_interval, max_connections) = match &cfg {
@@ -128,7 +135,8 @@ async fn main() -> Result<()> {
     });
 
     // Create REST API router
-    let rest_router = rest_api::create_router(relay_pool.clone(), metrics.clone());
+    let rest_router =
+        rest_api::create_router(relay_pool.clone(), dedupe_engine.clone(), metrics.clone());
 
     // Handle downstream forwarding based on config
     let websocket_enabled = cfg
@@ -153,8 +161,11 @@ async fn main() -> Result<()> {
             .unwrap_or_default();
 
         if !downstream_tcp.is_empty() || !downstream_rest.is_empty() {
-            let forwarder =
-                DownstreamForwarder::new(downstream_tcp.clone(), downstream_rest.clone());
+            let forwarder = DownstreamForwarder::new(
+                downstream_tcp.clone(),
+                downstream_rest.clone(),
+                rocksdb.clone(),
+            );
             let downstream_rx_for_forwarder = downstream_rx;
             tokio::spawn(async move {
                 if let Err(e) = forwarder.forward_events(downstream_rx_for_forwarder).await {
@@ -177,7 +188,7 @@ async fn main() -> Result<()> {
     // Start HTTP server
     let addr = match &cfg {
         Some(c) => format!("0.0.0.0:{}", c.output.websocket_port),
-        None => "0.0.0.0:3000".to_string(),
+        None => "0.0.0.0:8080".to_string(),
     };
     info!("Starting HTTP server on {}", addr);
     let server_addr_for_logs = addr.clone();

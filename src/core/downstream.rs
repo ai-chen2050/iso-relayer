@@ -1,3 +1,4 @@
+use crate::storage::rocksdb_store::RocksDBStore;
 use anyhow::{Context, Result};
 use flume::Receiver;
 use nostr_sdk::Event;
@@ -12,15 +13,21 @@ pub struct DownstreamForwarder {
     tcp_endpoints: Vec<String>,
     rest_endpoints: Vec<String>,
     client: Arc<reqwest::Client>,
+    rocksdb: Arc<RocksDBStore>,
 }
 
 impl DownstreamForwarder {
     /// Create a new downstream forwarder
-    pub fn new(tcp_endpoints: Vec<String>, rest_endpoints: Vec<String>) -> Self {
+    pub fn new(
+        tcp_endpoints: Vec<String>,
+        rest_endpoints: Vec<String>,
+        rocksdb: Arc<RocksDBStore>,
+    ) -> Self {
         Self {
             tcp_endpoints,
             rest_endpoints,
             client: Arc::new(reqwest::Client::new()),
+            rocksdb,
         }
     }
 
@@ -29,10 +36,12 @@ impl DownstreamForwarder {
         let tcp_endpoints = self.tcp_endpoints.clone();
         let rest_endpoints = self.rest_endpoints.clone();
         let client = self.client.clone();
+        let rocksdb = self.rocksdb.clone();
 
         loop {
             match rx.recv_async().await {
                 Ok(event) => {
+                    let mut all_ok = true;
                     // Forward to all TCP endpoints in parallel
                     if !tcp_endpoints.is_empty() {
                         let mut tcp_tasks = Vec::new();
@@ -47,6 +56,7 @@ impl DownstreamForwarder {
                         for task in tcp_tasks {
                             if let Ok(Err(e)) = task.await {
                                 error!("Failed to forward event via TCP: {}", e);
+                                all_ok = false;
                             }
                         }
                     }
@@ -66,7 +76,14 @@ impl DownstreamForwarder {
                         for task in rest_tasks {
                             if let Ok(Err(e)) = task.await {
                                 error!("Failed to forward event via REST: {}", e);
+                                all_ok = false;
                             }
+                        }
+                    }
+
+                    if all_ok {
+                        if let Err(e) = rocksdb.mark_forward_success(&event.id.to_hex()).await {
+                            error!("Failed to mark forward success: {}", e);
                         }
                     }
                 }

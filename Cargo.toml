@@ -5,32 +5,39 @@ description = "A high-performance and scalable ISO-relay for nostr."
 keywords = ["nostr", "iso-relay"]
 edition = "2024"
 
-
 [profile.release]
 opt-level = "z"
 lto = true
 strip = true
 incremental = true
 
+[[bin]]
+name = "downstream"
+path = "examples/downstream.rs"
+
 [dependencies]
 tokio = { version = "1.48.0", features = ["full"] }
-axum = { version = "0.8.6", features = ["ws"] }                     # HTTP Server with WebSocket
-nostr-sdk = "0.44.1"                                                # Nostr protocol
-rocksdb = "0.24.0"                                                  # Persistent storage
-bloom = "0.3.2"                                                     # Bloom filter
-lru = "0.16.2"                                                      # LRU cache
-flume = "0.11"                                                      # High-performance channel
-dashmap = "6.1"                                                     # Concurrent HashMap
-prometheus = "0.14.0"                                               # Metrics
+axum = { version = "0.8.6", features = ["ws"] } # HTTP Server with WebSocket
+nostr-sdk = "0.44.1" # Nostr protocol
+rocksdb = "0.24.0" # Persistent storage
+bloom = "0.3.2" # Bloom filter
+lru = "0.16.2" # LRU cache
+flume = "0.11" # High-performance channel
+dashmap = "6.1" # Concurrent HashMap
+prometheus = "0.14.0" # Metrics
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"                                                  # JSON serialization
-anyhow = "1.0"                                                      # Error handling
-tracing = "0.1"                                                     # Logging
+serde_json = "1.0" # JSON serialization
+anyhow = "1.0" # Error handling
+tracing = "0.1" # Logging
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-futures = "0.3"                                                     # Async utilities
-futures-util = "0.3"                                                # Futures utilities
-async-trait = "0.1"                                                 # Async traits
+futures = "0.3" # Async utilities
+futures-util = "0.3" # Futures utilities
+async-trait = "0.1" # Async traits
 toml = "0.9.8"
+thiserror = "2.0.17"
 clap = { version = "4.5", features = ["derive"] }
 reqwest = { version = "0.12", features = ["json"] }
-sysinfo = { version = "0.37.2", default-features = false, features = ["system"] }
+sysinfo = { version = "0.37.2", default-features = false, features = [
+    "system",
+] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }

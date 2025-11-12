@@ -12,11 +12,28 @@ use std::sync::Arc;
 
 use crate::api::metrics::Metrics;
 use crate::core::relay_pool::RelayPool;
+use crate::core::dedupe_engine::DeduplicationEngine;
 
 #[derive(Clone)]
 pub struct AppState {
     pub pool: Arc<RelayPool>,
+    pub dedupe: Arc<DeduplicationEngine>,
     pub metrics: Arc<Metrics>,
+}
+
+/// Create the REST API router
+pub fn create_router(pool: Arc<RelayPool>, dedupe: Arc<DeduplicationEngine>, metrics: Arc<Metrics>) -> Router {
+    let state = AppState { pool, dedupe, metrics };
+    Router::new()
+        .route("/health", get(health))
+        .route("/metrics", get(prometheus_metrics))
+        .route("/status", get(status))
+        .route("/api/metrics/summary", get(metrics_summary))
+        .route("/api/metrics/memory", get(memory))
+        .route("/api/relays", get(list_relays))
+        .route("/api/relays/add", post(add_relay))
+        .route("/api/relays/remove", delete(remove_relay))
+        .with_state(state)
 }
 
 /// Health check endpoint
@@ -44,6 +61,7 @@ async fn prometheus_metrics() -> Result<String, StatusCode> {
 async fn status(State(state): State<AppState>) -> Json<serde_json::Value> {
     let statuses = state.pool.get_connection_statuses().await;
     let active = state.pool.active_connections();
+    let deque_status = state.dedupe.get_stats().await;
 
     Json(json!({
         "active_connections": active,
@@ -52,7 +70,13 @@ async fn status(State(state): State<AppState>) -> Json<serde_json::Value> {
                 "url": url,
                 "status": format!("{:?}", status)
             })
-        }).collect::<Vec<_>>()
+        }).collect::<Vec<_>>(),
+        "deduplication_engine": {
+            "bloom_filter_size": deque_status.bloom_filter_size,
+            "lru_cache_size": deque_status.lru_cache_size,
+            "rocksdb_entry_count": deque_status.rocksdb_approximate_count,
+            "hot_set_size": deque_status.hot_set_size,
+        }
     }))
 }
 
@@ -126,21 +150,6 @@ async fn list_relays(State(state): State<AppState>) -> Json<serde_json::Value> {
         "relays": relay_info,
         "count": relay_info.len()
     }))
-}
-
-/// Create the REST API router
-pub fn create_router(pool: Arc<RelayPool>, metrics: Arc<Metrics>) -> Router {
-    let state = AppState { pool, metrics };
-    Router::new()
-        .route("/health", get(health))
-        .route("/metrics", get(prometheus_metrics))
-        .route("/status", get(status))
-        .route("/api/metrics/summary", get(metrics_summary))
-        .route("/api/metrics/memory", get(memory))
-        .route("/api/relays", get(list_relays))
-        .route("/api/relays/add", post(add_relay))
-        .route("/api/relays/remove", delete(remove_relay))
-        .with_state(state)
 }
 
 /// Summary metrics endpoint (JSON)

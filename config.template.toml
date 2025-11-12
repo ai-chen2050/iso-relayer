@@ -18,14 +18,14 @@ rocksdb_path = "./data/rocksdb"
 
 # Output configuration
 [output]
-websocket_enabled = true
+websocket_enabled = false
 websocket_port = 8080
 # downstream_tcp = ["localhost:9999", "localhost:9998"]  # Optional: TCP endpoints for forwarding events (supports multiple)
-# downstream_rest = ["http://localhost:8081/events", "http://localhost:8082/events"]  # Optional: REST endpoints for forwarding events (supports multiple)
+downstream_rest = ["http://localhost:3000/events"]  # Optional: REST endpoints for forwarding events (supports multiple)
 batch_size = 100
 max_latency_ms = 50
 
 # Monitoring configuration
 [monitoring]
 prometheus_port = 9090
-log_level = "info"
+log_level = "debug"

@@ -3,7 +3,7 @@
 ### Health Check
 
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:8080/health
 ```
 
 Response:
@@ -18,7 +18,7 @@ Response:
 ### Get Connection Status
 
 ```bash
-curl http://localhost:3000/status
+curl http://localhost:8080/status
 ```
 
 Response:
@@ -38,13 +38,13 @@ Response:
 ### Get System Metrics (Prometheus format)
 
 ```bash
-curl http://localhost:3000/metrics
+curl http://localhost:8080/metrics
 ```
 
 ### Get Metrics Summary (JSON format)
 
 ```bash
-curl http://localhost:3000/api/metrics/summary
+curl http://localhost:8080/api/metrics/summary
 ```
 
 Response:
@@ -62,19 +62,19 @@ Response:
 ### Get Memory Usage
 
 ```bash
-curl http://localhost:3000/api/metrics/memory
+curl http://localhost:8080/api/metrics/memory
 ```
 
 ### List All Relays
 
 ```bash
-curl http://localhost:3000/api/relays
+curl http://localhost:8080/api/relays
 ```
 
 ### Add Relay
 
 ```bash
-curl -X POST http://localhost:3000/api/relays/add \
+curl -X POST http://localhost:8080/api/relays/add \
   -H "Content-Type: application/json" \
   -d '{"url": "wss://relay.example.com"}'
 ```
@@ -82,7 +82,7 @@ curl -X POST http://localhost:3000/api/relays/add \
 ### Remove Relay
 
 ```bash
-curl -X DELETE http://localhost:3000/api/relays/remove \
+curl -X DELETE http://localhost:8080/api/relays/remove \
   -H "Content-Type: application/json" \
   -d '{"url": "wss://relay.example.com"}'
 ```

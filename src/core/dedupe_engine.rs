@@ -4,7 +4,7 @@ use crate::storage::{
 // use anyhow::Result;
 use crate::api::metrics::Metrics;
 use dashmap::DashSet;
-use nostr_sdk::Event;
+use nostr_sdk::{Event, EventId};
 use std::sync::Arc;
 use tracing::{debug, trace};
 
@@ -52,6 +52,33 @@ impl DeduplicationEngine {
     pub fn with_metrics(mut self, metrics: Arc<Metrics>) -> Self {
         self.metrics = Some(metrics);
         self
+    }
+
+    /// Warm in-memory structures from RocksDB successful-forward index.
+    /// Loads up to `limit` most recent successfully forwarded events into bloom, hot_set and LRU.
+    pub async fn warm_from_db(&self, limit: usize) {
+        if limit == 0 {
+            return;
+        }
+        let ids = self.rocksdb.load_recent_success_ids(limit).await;
+        for id in &ids {
+            match EventId::from_hex(&id) {
+                Ok(event_id) => {
+                    // Best-effort: insert into bloom, lru and hot_set
+                    self.bloom.insert(event_id.as_bytes()).await;
+                }
+                Err(err) => {
+                    tracing::warn!("Failed to parse event id {} from RocksDB: {}", id, err);
+                    // continue best-effort using the string forms for caches
+                }
+            }
+            self.lru_cache.put(id.clone()).await;
+            self.hot_set.insert(id.to_string());
+        }
+        tracing::info!(
+            "Deduplication engine warmed with {} IDs from RocksDB",
+            ids.len()
+        );
     }
 
     /// Check if an event is a duplicate
